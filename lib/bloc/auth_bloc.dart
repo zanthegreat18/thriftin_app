@@ -1,32 +1,38 @@
-import 'package:bloc/bloc.dart';
-import 'package:thriftin_app/bloc/auth_state.dart';
-import 'package:thriftin_app/repositories/auth_repository.dart';
-import 'package:thriftin_app/bloc/auth_event.dart';
-
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:thriftin_app/services/auth_service.dart';
+import 'auth_event.dart';
+import 'auth_state.dart';
 
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  final AuthRepository repository;
+  final AuthService authService;
 
-  AuthBloc(this.repository) : super(AuthInitial()) {
-    on<AuthLoginRequested>((event, emit) async {
+  AuthBloc(this.authService) : super(AuthInitial()) {
+        on<LoginRequested>((event, emit) async {
       emit(AuthLoading());
       try {
-        final token = await repository.login(event.email, event.password);
-        emit(AuthSuccess(token));
+        final token = await authService.login(event.email, event.password);
+        final role = await authService.getRole(token);
+        emit(AuthSuccess(token, role));
       } catch (e) {
         emit(AuthFailure(e.toString()));
       }
     });
 
-    on<AuthRegisterRequested>((event, emit) async {
+    on<RegisterRequested>((event, emit) async {
       emit(AuthLoading());
       try {
-        final token = await repository.register(event.name, event.email, event.password);
-        emit(AuthSuccess(token));
+        final token = await authService.register(event.name, event.email, event.password);
+        final role = await authService.getRole(token);
+        emit(AuthSuccess(token, role));
       } catch (e) {
         emit(AuthFailure(e.toString()));
       }
+    });
+
+    on<LogoutRequested>((event, emit) {
+        emit(AuthInitial()); // Balik ke state awal
     });
   }
 }
+
