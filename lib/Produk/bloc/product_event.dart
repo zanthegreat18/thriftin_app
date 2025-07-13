@@ -30,10 +30,11 @@ class ProductLocationPicked extends ProductEvent {
 
 class ProductSubmitted extends ProductEvent {}
 
-class ProductFetched extends ProductEvent {}
+class ProductFetched extends ProductEvent {} // produk milik user
+
+class ProductAllFetched extends ProductEvent {} // semua produk
 
 class ProductSelected extends ProductEvent {
   final Map<String, dynamic> product;
   ProductSelected(this.product);
 }
-
