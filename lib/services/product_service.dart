@@ -75,4 +75,30 @@ class ProductService {
       throw Exception("Fetch error: $e");
     }
   }
+
+  Future<List<dynamic>> fetchAllProducts() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token == null) throw Exception('Token tidak ditemukan');
+
+      final response = await _dio.get(
+        'http://10.0.2.2:8000/api/produk/all',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data['data'];
+      } else {
+        throw Exception('Gagal mengambil semua produk: ${response.statusMessage}');
+      }
+    } catch (e) {
+      throw Exception("Fetch All Produk error: $e");
+    }
+  }
 }
