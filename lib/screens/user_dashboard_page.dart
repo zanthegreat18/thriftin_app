@@ -3,9 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:thriftin_app/bloc/auth_bloc.dart';
 import 'package:thriftin_app/bloc/auth_event.dart';
 import 'package:thriftin_app/bloc/auth_state.dart';
+import 'package:thriftin_app/screens/Product/all_product_page.dart';
 import 'package:thriftin_app/screens/login_page.dart';
-import 'package:thriftin_app/screens/produk_list_page.dart';
-
+import 'package:thriftin_app/screens/Product/produk_list_page.dart';
+import 'package:thriftin_app/Produk/bloc/product_bloc.dart';
+import 'package:thriftin_app/Produk/bloc/product_event.dart';
+import 'package:thriftin_app/Produk/bloc/product_state.dart';
+import 'package:thriftin_app/screens/Product/product_detail_page.dart';
 
 class UserDashboardPage extends StatefulWidget {
   const UserDashboardPage({super.key});
@@ -18,11 +22,11 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
   int _selectedIndex = 0;
 
   final List<Widget> _pages = [
-    const HomePageUser(), // halaman utama
-    const Center(child: Text("Favorites")),
-    const ProductListPage(), // halaman store
-    const Center(child: Text("Cart")),
-    const Center(child: Text("History")),
+    const HomePageUser(), // 0: Home
+    const Center(child: Text("Favorites")), // 1
+    const AllProductsPage(), // 2: Semua Produk
+    const Center(child: Text("Cart")), // 3
+    const ProductListPage(), // 4: Produk User Sendiri
   ];
 
   void _onTap(int index) {
@@ -56,7 +60,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
             BottomNavigationBarItem(icon: Icon(Icons.favorite), label: "Favorites"),
             BottomNavigationBarItem(icon: Icon(Icons.store_mall_directory), label: "Store"),
             BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Cart"),
-            BottomNavigationBarItem(icon: Icon(Icons.history), label: "History"),
+            BottomNavigationBarItem(icon: Icon(Icons.history), label: "My Products"),
           ],
         ),
       ),
@@ -64,8 +68,19 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
   }
 }
 
-class HomePageUser extends StatelessWidget {
+class HomePageUser extends StatefulWidget {
   const HomePageUser({super.key});
+
+  @override
+  State<HomePageUser> createState() => _HomePageUserState();
+}
+
+class _HomePageUserState extends State<HomePageUser> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<ProductBloc>().add(ProductAllFetched());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -97,6 +112,7 @@ class HomePageUser extends StatelessWidget {
       ),
       body: ListView(
         children: [
+          // 🔥 BANNER PROMO
           Padding(
             padding: const EdgeInsets.all(16),
             child: Container(
@@ -123,6 +139,8 @@ class HomePageUser extends StatelessWidget {
               ),
             ),
           ),
+
+          // ✅ RECOMMENDATIONS
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: Text(
@@ -130,70 +148,123 @@ class HomePageUser extends StatelessWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: 4,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                childAspectRatio: 0.7,
-              ),
-              itemBuilder: (_, index) => _ProductCard(index: index),
+          const SizedBox(height: 12),
+          _buildHorizontalProductList(),
+
+          const SizedBox(height: 24),
+
+          // ✅ NEW ARRIVALS (atau bebas lo kasih judul apa)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              "New Arrivals",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
+          const SizedBox(height: 12),
+          _buildHorizontalProductList(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHorizontalProductList() {
+    return SizedBox(
+      height: 230,
+      child: BlocBuilder<ProductBloc, ProductState>(
+        builder: (context, state) {
+          if (state.isSubmitting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (state.errorMessage != null) {
+            return Center(child: Text("Error: ${state.errorMessage}"));
+          }
+
+          final list = state.productList.take(5).toList(); // ambil 5
+
+          if (list.isEmpty) {
+            return const Center(child: Text("Tidak ada produk."));
+          }
+
+          return ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: list.length,
+            itemBuilder: (context, index) {
+              final product = list[index];
+              return _HorizontalProductCard(product: product);
+            },
+          );
+        },
       ),
     );
   }
 }
 
-class _ProductCard extends StatelessWidget {
-  final int index;
+class _HorizontalProductCard extends StatelessWidget {
+  final Map<String, dynamic> product;
 
-  const _ProductCard({required this.index});
+  const _HorizontalProductCard({required this.product});
 
   @override
   Widget build(BuildContext context) {
-    final names = ["Cozy Chair", "Grandpa Chair", "Vintage Lamp", "Coffee Table"];
-    final prices = [55.00, 65.00, 30.00, 120.00];
+    final nama = product['nama_produk'] ?? '';
+    final harga = product['harga'].toString();
+    final gambar = product['gambar'];
 
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 3,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
+    return GestureDetector(
+      onTap: () {
+        context.read<ProductBloc>().add(ProductSelected(product));
+        Future.delayed(const Duration(milliseconds: 100), () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ProductDetailPage()),
+          );
+        });
+      },
+      child: Container(
+        width: 160,
+        margin: const EdgeInsets.only(right: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
+          ],
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Center(child: Icon(Icons.chair, size: 40)),
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              child: gambar != null
+                  ? Image.network(
+                      'http://10.0.2.2:8000/storage/$gambar',
+                      height: 120,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    )
+                  : Container(
+                      height: 120,
+                      color: Colors.grey.shade300,
+                      child: const Center(child: Icon(Icons.image_not_supported)),
+                    ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(nama,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text("Rp $harga", style: const TextStyle(color: Colors.black54)),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            Text(names[index], style: const TextStyle(fontWeight: FontWeight.bold)),
-            Text("\$${prices[index]}", style: const TextStyle(color: Colors.black54)),
-            const Spacer(),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: CircleAvatar(
-                radius: 18,
-                backgroundColor: Colors.black,
-                child: IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.add_shopping_cart, size: 16, color: Colors.white),
-                ),
-              ),
-            )
           ],
         ),
       ),
