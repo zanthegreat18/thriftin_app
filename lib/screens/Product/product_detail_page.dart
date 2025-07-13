@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:thriftin_app/Produk/bloc/product_bloc.dart';
 import 'package:thriftin_app/Produk/bloc/product_state.dart';
 
@@ -65,25 +66,34 @@ class ProductDetailPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 24),
 
-                    // Lokasi Produk
-                    if (product['lat'] != null &&
-                        product['lng'] != null &&
-                        product['lat'].toString().isNotEmpty &&
-                        product['lng'].toString().isNotEmpty)
+                    // Lokasi Produk (alamat)
+                    if (product['lokasi_lat'] != null && product['lokasi_lng'] != null)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text("Lokasi Produk",
-                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          const Text("Lokasi Produk", style: TextStyle(fontWeight: FontWeight.bold)),
                           const SizedBox(height: 8),
                           Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Icon(Icons.location_on, color: Colors.red),
                               const SizedBox(width: 8),
-                              Text(
-                                "(${double.parse(product['lat'].toString()).toStringAsFixed(4)}, "
-                                "${double.parse(product['lng'].toString()).toStringAsFixed(4)})",
-                                style: const TextStyle(fontSize: 14),
+                              Flexible(
+                                child: FutureBuilder<String>(
+                                  future: getAddress(
+                                    double.parse(product['lokasi_lat'].toString()),
+                                    double.parse(product['lokasi_lng'].toString()),
+                                  ),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState == ConnectionState.waiting) {
+                                      return const Text("Memuat alamat...");
+                                    } else if (snapshot.hasError) {
+                                      return const Text("Gagal memuat alamat");
+                                    } else {
+                                      return Text(snapshot.data ?? "-", style: const TextStyle(fontSize: 14));
+                                    }
+                                  },
+                                ),
                               ),
                             ],
                           ),
@@ -95,43 +105,6 @@ class ProductDetailPage extends StatelessWidget {
                         "Lokasi tidak tersedia",
                         style: TextStyle(color: Colors.grey),
                       ),
-
-                    // Variasi dummy
-                    const Text("Variations",
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        _variationBox("Pink"),
-                        const SizedBox(width: 8),
-                        _variationBox("M"),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Gambar variasi dummy
-                    SizedBox(
-                      height: 80,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        children: List.generate(
-                          3,
-                          (index) => Container(
-                            margin: const EdgeInsets.only(right: 12),
-                            width: 60,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              image: DecorationImage(
-                                image: NetworkImage(
-                                  'http://10.0.2.2:8000/storage/${product['gambar']}',
-                                ),
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -178,14 +151,13 @@ class ProductDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _variationBox(String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFECECEC),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(label),
-    );
+  Future<String> getAddress(double lat, double lng) async {
+    try {
+      final placemarks = await placemarkFromCoordinates(lat, lng);
+      final place = placemarks.first;
+      return "${place.street}, ${place.subLocality}, ${place.locality}";
+    } catch (e) {
+      return "Alamat tidak ditemukan";
+    }
   }
 }
