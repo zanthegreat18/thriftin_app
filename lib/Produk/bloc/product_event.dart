@@ -38,3 +38,11 @@ class ProductSelected extends ProductEvent {
   final Map<String, dynamic> product;
   ProductSelected(this.product);
 }
+
+class ProductDeleted extends ProductEvent {
+  final int productId;
+
+  ProductDeleted(this.productId);
+}
+
+class ProductUpdated extends ProductEvent {}
