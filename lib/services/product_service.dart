@@ -101,4 +101,77 @@ class ProductService {
       throw Exception("Fetch All Produk error: $e");
     }
   }
+  Future<void> deleteProduct(int productId) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    if (token == null) throw Exception('Token tidak ditemukan');
+
+    final response = await _dio.delete(
+      'http://10.0.2.2:8000/api/produk/$productId',
+      options: Options(
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      ),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Gagal menghapus produk: ${response.statusMessage}');
+    }
+  } catch (e) {
+    throw Exception("Delete error: $e");
+  }
+  Future<void> updateProduct({
+  required int id,
+  required String nama,
+  required String deskripsi,
+  required int harga,
+  required double latitude,
+  required double longitude,
+  File? imageFile, // opsional
+}) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    if (token == null) throw Exception('Token tidak ditemukan');
+
+    final data = {
+      'nama_produk': nama,
+      'deskripsi': deskripsi,
+      'harga': harga,
+      'lokasi_lat': latitude,
+      'lokasi_lng': longitude,
+    };
+
+    if (imageFile != null) {
+      data['gambar'] = await MultipartFile.fromFile(
+        imageFile.path,
+        filename: imageFile.path.split('/').last,
+      );
+    }
+
+    final formData = FormData.fromMap(data);
+
+    final response = await _dio.post(
+      'http://10.0.2.2:8000/api/produk/$id/update',
+      data: formData,
+      options: Options(
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+        contentType: 'multipart/form-data',
+      ),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Gagal update produk: ${response.statusMessage}');
+    }
+  } catch (e) {
+    throw Exception("Update error: $e");
+  }
+}
+}
 }
