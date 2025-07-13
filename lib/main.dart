@@ -3,13 +3,23 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:thriftin_app/Produk/bloc/product_bloc.dart';
 import 'package:thriftin_app/bloc/auth_bloc.dart';
 import 'package:thriftin_app/screens/login_page.dart';
-import 'package:thriftin_app/screens/product_detail_page.dart';
+import 'package:thriftin_app/screens/Product/product_detail_page.dart';
 import 'package:thriftin_app/screens/admin_dashboard_page.dart';
 import 'package:thriftin_app/screens/user_dashboard_page.dart';
 import 'package:thriftin_app/services/auth_service.dart';
 import 'package:thriftin_app/services/product_service.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
 
-void main() {
+Future<void> deleteOldProductDB() async {
+  final dbPath = await getDatabasesPath();
+  final path = join(dbPath, 'product.db');
+  await deleteDatabase(path);
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await deleteOldProductDB(); // 🧹 delete DB lama biar gak error user_id
   runApp(const MyApp());
 }
 
@@ -44,9 +54,10 @@ class MyApp extends StatelessWidget {
         ),
         initialRoute: '/',
         routes: {
-          '/': (_) =>  LoginPage(),
-          '/admin-dashboard': (_) =>  AdminDashboardPage(),
+          '/': (_) => LoginPage(),
+          '/admin-dashboard': (_) => AdminDashboardPage(),
           '/user-dashboard': (_) => const UserDashboardPage(),
+          '/product-detail': (_) => const ProductDetailPage(),
           '/product-detail': (_) => const ProductDetailPage(),
         },
       ),
