@@ -67,42 +67,50 @@ class _ProductCard extends StatelessWidget {
     final String harga = produk['harga'].toString();
     final String? gambar = produk['gambar'];
 
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: gambar != null
-                    ? Image.network(
-                        'http://10.0.2.2:8000/storage/$gambar',
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: Colors.red.shade100,
-                          child: const Icon(Icons.broken_image),
+    return InkWell(
+      onTap: () {
+        // Kirim produk terpilih ke BLoC
+        context.read<ProductBloc>().add(ProductSelected(produk));
+        // Navigasi ke detail page
+        Navigator.pushNamed(context, '/product-detail');
+      },
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 4,
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: gambar != null
+                      ? Image.network(
+                          'http://10.0.2.2:8000/storage/$gambar',
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            color: Colors.red.shade100,
+                            child: const Icon(Icons.broken_image),
+                          ),
+                        )
+                      : Container(
+                          color: Colors.grey.shade300,
+                          child: const Icon(Icons.image_not_supported),
                         ),
-                      )
-                    : Container(
-                        color: Colors.grey.shade300,
-                        child: const Icon(Icons.image_not_supported),
-                      ),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              nama,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text("Rp $harga", style: const TextStyle(color: Colors.black54)),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                nama,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text("Rp $harga", style: const TextStyle(color: Colors.black54)),
+            ],
+          ),
         ),
       ),
     );
