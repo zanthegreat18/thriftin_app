@@ -28,14 +28,21 @@ class UploadProductPage extends StatelessWidget {
       body: BlocConsumer<ProductBloc, ProductState>(
         listener: (context, state) {
           if (state.success) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Produk berhasil diupload")),
-            );
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/user-dashboard',
-              (route) => false,
-            );
+            Future.microtask(() {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Produk berhasil diupload")),
+              );
+
+              // Refresh product list & redirect
+              context.read<ProductBloc>().add(ProductAllFetched());
+
+              // Pindah ke halaman All Products
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/all-products',
+                (route) => false,
+              );
+            });
           }
 
           if (state.errorMessage != null) {

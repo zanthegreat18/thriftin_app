@@ -10,6 +10,7 @@ import 'package:thriftin_app/Produk/bloc/product_bloc.dart';
 import 'package:thriftin_app/Produk/bloc/product_event.dart';
 import 'package:thriftin_app/Produk/bloc/product_state.dart';
 import 'package:thriftin_app/screens/Product/product_detail_page.dart';
+import 'package:thriftin_app/screens/transaksi/cart_page_screen.dart'; // ✅ import cart page
 
 class UserDashboardPage extends StatefulWidget {
   const UserDashboardPage({super.key});
@@ -22,11 +23,11 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
   int _selectedIndex = 0;
 
   final List<Widget> _pages = [
-    const HomePageUser(), // 0: Home
-    const Center(child: Text("Favorites")), // 1
-    const AllProductsPage(), // 2: Semua Produk
-    const Center(child: Text("Cart")), // 3
-    const ProductListPage(), // 4: Produk User Sendiri
+    const HomePageUser(),
+    const Center(child: Text("Favorites")),
+    const AllProductsPage(),
+    const CartPage(), // ✅ ini udah diarahkan ke Cart
+    const ProductListPage(),
   ];
 
   void _onTap(int index) {
@@ -42,7 +43,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
         if (state is AuthInitial) {
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (_) =>  LoginPage()),
+            MaterialPageRoute(builder: (_) => LoginPage()),
             (route) => false,
           );
         }
@@ -59,7 +60,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
             BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
             BottomNavigationBarItem(icon: Icon(Icons.favorite), label: "Favorites"),
             BottomNavigationBarItem(icon: Icon(Icons.store_mall_directory), label: "Store"),
-            BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Cart"),
+            BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Cart"), // ✅ Cart icon
             BottomNavigationBarItem(icon: Icon(Icons.history), label: "My Products"),
           ],
         ),
@@ -112,7 +113,6 @@ class _HomePageUserState extends State<HomePageUser> {
       ),
       body: ListView(
         children: [
-          // 🔥 BANNER PROMO
           Padding(
             padding: const EdgeInsets.all(16),
             child: Container(
@@ -139,25 +139,10 @@ class _HomePageUserState extends State<HomePageUser> {
               ),
             ),
           ),
-
-          // ✅ RECOMMENDATIONS
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               "Recommendations for you",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(height: 12),
-          _buildHorizontalProductList(),
-
-          const SizedBox(height: 24),
-
-          // ✅ NEW ARRIVALS (atau bebas lo kasih judul apa)
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              "New Arrivals",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
@@ -170,7 +155,7 @@ class _HomePageUserState extends State<HomePageUser> {
 
   Widget _buildHorizontalProductList() {
     return SizedBox(
-      height: 230,
+      height: 500,
       child: BlocBuilder<ProductBloc, ProductState>(
         builder: (context, state) {
           if (state.isSubmitting) {
@@ -181,7 +166,7 @@ class _HomePageUserState extends State<HomePageUser> {
             return Center(child: Text("Error: ${state.errorMessage}"));
           }
 
-          final list = state.productList.take(5).toList(); // ambil 5
+          final list = state.productList.take(5).toList();
 
           if (list.isEmpty) {
             return const Center(child: Text("Tidak ada produk."));
@@ -210,7 +195,8 @@ class _HorizontalProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final nama = product['nama_produk'] ?? '';
-    final harga = product['harga'].toString();
+    final lokasi = "Indonesia";
+    final rating = "4.8";
     final gambar = product['gambar'];
 
     return GestureDetector(
@@ -224,47 +210,96 @@ class _HorizontalProductCard extends StatelessWidget {
         });
       },
       child: Container(
-        width: 160,
+        width: 300,
         margin: const EdgeInsets.only(right: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(24),
           boxShadow: const [
-            BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 10,
+              offset: Offset(0, 6),
+            )
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: BorderRadius.circular(24),
               child: gambar != null
                   ? Image.network(
                       'http://10.0.2.2:8000/storage/$gambar',
-                      height: 120,
+                      height: double.infinity,
                       width: double.infinity,
                       fit: BoxFit.cover,
                     )
                   : Container(
-                      height: 120,
+                      height: double.infinity,
                       color: Colors.grey.shade300,
                       child: const Center(child: Icon(Icons.image_not_supported)),
                     ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(nama,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
-                  Text("Rp $harga", style: const TextStyle(color: Colors.black54)),
-                ],
+            Positioned(
+              top: 12,
+              right: 12,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.85),
+                  shape: BoxShape.circle,
+                ),
+                child: const Padding(
+                  padding: EdgeInsets.all(6),
+                  child: Icon(Icons.favorite_border, size: 22, color: Colors.black87),
+                ),
               ),
             ),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.5),
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      nama,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on, size: 14, color: Colors.white),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            lokasi,
+                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Icon(Icons.star, size: 14, color: Colors.amber),
+                        Text(
+                          rating,
+                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+              ),
+            )
           ],
         ),
       ),
