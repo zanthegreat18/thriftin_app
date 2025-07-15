@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -76,7 +77,7 @@ class ProductService {
     }
   }
 
-    Future<List<dynamic>> fetchAllProducts() async {
+  Future<List<dynamic>> fetchAllProducts() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
@@ -92,13 +93,30 @@ class ProductService {
         ),
       );
 
+      print("RESP STATUS: ${response.statusCode}");
+      print("RESP DATA: ${response.data}");
+
       if (response.statusCode == 200) {
-        // ✅ Karena responsenya bentuknya { message: ..., data: [...] }
-        return response.data['data'];
+        dynamic body = response.data;
+
+        // Jika masih string (kadang Laravel bisa begitu), parse dulu
+        if (body is String) {
+          body = body.trim();
+          if (body.isEmpty) throw Exception('Response kosong');
+          body = json.decode(body);
+        }
+
+        // Validasi ada key 'data'
+        if (body is Map && body.containsKey('data')) {
+          return List<Map<String, dynamic>>.from(body['data']);
+        } else {
+          throw Exception("Format data tidak valid");
+        }
       } else {
         throw Exception('Gagal mengambil semua produk: ${response.statusMessage}');
       }
     } catch (e) {
+      print("Fetch All Produk error: $e");
       throw Exception("Fetch All Produk error: $e");
     }
   }
@@ -134,7 +152,7 @@ class ProductService {
     required int harga,
     required double latitude,
     required double longitude,
-    File? imageFile, // opsional
+    File? imageFile,
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -175,6 +193,33 @@ class ProductService {
       }
     } catch (e) {
       throw Exception("Update error: $e");
+    }
+  }
+
+  // ✅ Tambahan method baru buat ambil produk berdasarkan user ID
+  Future<List<Map<String, dynamic>>> getProductsByUser(int userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token == null) throw Exception('Token tidak ditemukan');
+
+      final response = await _dio.get(
+        'http://10.0.2.2:8000/api/user/$userId/produk',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(response.data['data']);
+      } else {
+        throw Exception('Gagal mengambil produk user: ${response.statusMessage}');
+      }
+    } catch (e) {
+      throw Exception("Get by user error: $e");
     }
   }
 }

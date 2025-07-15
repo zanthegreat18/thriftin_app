@@ -198,7 +198,7 @@ class _ProductListPageState extends State<ProductListPage> {
                       color: Colors.black,
                     ),
                     padding: const EdgeInsets.all(8),
-                    child: const Icon(Icons.shopping_cart,
+                    child: const Icon(Icons.info,
                         size: 18, color: Colors.white),
                   ),
                 )

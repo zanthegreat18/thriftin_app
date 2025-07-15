@@ -3,8 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:thriftin_app/bloc/auth_bloc.dart';
 import 'package:thriftin_app/bloc/auth_event.dart';
 import 'package:thriftin_app/bloc/auth_state.dart';
-import 'package:thriftin_app/screens/home_page.dart';
 import 'package:thriftin_app/screens/login_page.dart';
+import 'package:thriftin_app/screens/user_dashboard_page.dart';
 
 class RegisterPage extends StatelessWidget {
   final nameC = TextEditingController();
@@ -19,7 +19,7 @@ class RegisterPage extends StatelessWidget {
           if (state is AuthSuccess) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => HomePage()),
+              MaterialPageRoute(builder: (_) => UserDashboardPage()),
             );
           } else if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(

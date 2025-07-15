@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 import 'package:thriftin_app/Produk/bloc/product_bloc.dart';
 import 'package:thriftin_app/Produk/bloc/product_state.dart';
+import 'package:thriftin_app/services/auth_service.dart';
 import 'package:thriftin_app/services/buy_service.dart';
 import 'package:thriftin_app/transaksi/bloc/buy_bloc.dart';
 import 'package:thriftin_app/transaksi/bloc/buy_event.dart';
@@ -21,7 +25,6 @@ class ProductDetailPage extends StatelessWidget {
       );
     }
 
-    // ✅ Inject BuyBloc LOKAL di halaman ini
     return BlocProvider(
       create: (_) => BuyBloc(BuyService()),
       child: Builder(
@@ -41,7 +44,7 @@ class ProductDetailPage extends StatelessWidget {
               body: SafeArea(
                 child: Column(
                   children: [
-                    // Gambar Produk
+                    // Gambar Produk & Tombol Laporan
                     Stack(
                       children: [
                         SizedBox(
@@ -54,9 +57,27 @@ class ProductDetailPage extends StatelessWidget {
                                 const Center(child: Icon(Icons.broken_image, size: 60)),
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back, color: Colors.white),
-                          onPressed: () => Navigator.pop(context),
+                        Positioned(
+                          top: 16,
+                          left: 16,
+                          child: IconButton(
+                            icon: const Icon(Icons.arrow_back, color: Colors.white),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ),
+                        Positioned(
+                          top: 16,
+                          right: 16,
+                          child: IconButton(
+                            icon: const Icon(Icons.report, color: Colors.red),
+                            tooltip: "Laporkan produk ini",
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (_) => _ReportDialog(produkId: product['id']),
+                              );
+                            },
+                          ),
                         ),
                       ],
                     ),
@@ -81,8 +102,6 @@ class ProductDetailPage extends StatelessWidget {
                               style: const TextStyle(fontSize: 14),
                             ),
                             const SizedBox(height: 24),
-
-                            // Lokasi Produk
                             if (product['lokasi_lat'] != null && product['lokasi_lng'] != null)
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,7 +165,7 @@ class ProductDetailPage extends StatelessWidget {
                               onPressed: () {
                                 // Add to cart (belum implement)
                               },
-                              child: const Text("Add to cart"),
+                              child: const Text("Chat Owner"),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -186,5 +205,84 @@ class ProductDetailPage extends StatelessWidget {
     } catch (e) {
       return "Alamat tidak ditemukan";
     }
+  }
+}
+
+class _ReportDialog extends StatefulWidget {
+  final int produkId;
+
+  const _ReportDialog({required this.produkId});
+
+  @override
+  State<_ReportDialog> createState() => _ReportDialogState();
+}
+
+class _ReportDialogState extends State<_ReportDialog> {
+  final _alasanController = TextEditingController();
+  bool _isSubmitting = false;
+
+    Future<void> _submitReport() async {
+    final alasan = _alasanController.text.trim();
+    if (alasan.isEmpty) return;
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final token = await AuthService.getToken(); // Ambil token login
+
+      final response = await http.post(
+        Uri.parse('http://10.0.2.2:8000/api/lapor'),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token", // Kirim token
+        },
+        body: jsonEncode({
+          "produk_id": widget.produkId,
+          "alasan": alasan,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Laporan berhasil dikirim!")),
+        );
+      } else {
+        print(response.body);
+        throw Exception("Gagal kirim laporan");
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: ${e.toString()}")),
+      );
+    } finally {
+      setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text("Laporkan Produk"),
+      content: TextField(
+        controller: _alasanController,
+        maxLines: 3,
+        decoration: const InputDecoration(
+          hintText: "Masukkan alasan laporan...",
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSubmitting ? null : () => Navigator.pop(context),
+          child: const Text("Batal"),
+        ),
+        ElevatedButton(
+          onPressed: _isSubmitting ? null : _submitReport,
+          child: _isSubmitting
+              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text("Kirim"),
+        ),
+      ],
+    );
   }
 }

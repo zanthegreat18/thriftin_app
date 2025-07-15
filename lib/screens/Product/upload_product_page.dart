@@ -23,25 +23,17 @@ class UploadProductPage extends StatelessWidget {
         title: const Text("Upload Produk"),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        elevation: 2,
+        elevation: 1,
       ),
       body: BlocConsumer<ProductBloc, ProductState>(
         listener: (context, state) {
           if (state.success) {
-            Future.microtask(() {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Produk berhasil diupload")),
+                const SnackBar(content: Text("Produk berhasil diupload 🎉")),
               );
-
-              // Refresh product list & redirect
-              context.read<ProductBloc>().add(ProductAllFetched());
-
-              // Pindah ke halaman All Products
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                '/all-products',
-                (route) => false,
-              );
+              context.read<ProductBloc>().add(ProductFetched());
+              Navigator.pushReplacementNamed(context, '/product-list');
             });
           }
 
@@ -56,112 +48,121 @@ class UploadProductPage extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                _buildFormCard(
-                  children: [
-                    TextField(
-                      controller: nameC,
-                      decoration: _inputDecoration("Nama Produk"),
-                      onChanged: (val) => productBloc.add(ProductNameChanged(val)),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: descC,
-                      maxLines: 3,
-                      decoration: _inputDecoration("Deskripsi Produk"),
-                      onChanged: (val) => productBloc.add(ProductDescriptionChanged(val)),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: priceC,
-                      keyboardType: TextInputType.number,
-                      decoration: _inputDecoration("Harga (Rp)"),
-                      onChanged: (val) => productBloc.add(ProductPriceChanged(val)),
-                    ),
-                  ],
-                ),
+                _buildFormCard([
+                  _buildTextField("Nama Produk", nameC, Icons.edit, (val) {
+                    productBloc.add(ProductNameChanged(val));
+                  }),
+                  const SizedBox(height: 12),
+                  _buildTextField("Deskripsi Produk", descC, Icons.description, (val) {
+                    productBloc.add(ProductDescriptionChanged(val));
+                  }, maxLines: 3),
+                  const SizedBox(height: 12),
+                  _buildTextField("Harga (Rp)", priceC, Icons.attach_money, (val) {
+                    productBloc.add(ProductPriceChanged(val));
+                  }, inputType: TextInputType.number),
+                ]),
                 const SizedBox(height: 16),
-
-                // Gambar
-                _buildFormCard(
-                  children: [
-                    state.image != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.file(state.image!, height: 200, fit: BoxFit.cover),
-                          )
-                        : const Text("Belum ada gambar dipilih"),
-                    const SizedBox(height: 8),
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        final picker = ImagePicker();
-                        final picked = await picker.pickImage(source: ImageSource.gallery);
-                        if (picked != null) {
-                          productBloc.add(ProductImagePicked(File(picked.path)));
-                        }
-                      },
-                      icon: const Icon(Icons.image),
-                      label: const Text("Pilih Gambar"),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // Lokasi
-                _buildFormCard(
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on, color: Colors.red),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            state.lat != null && state.lng != null
-                                ? "Lokasi: (${state.lat!.toStringAsFixed(4)}, ${state.lng!.toStringAsFixed(4)})"
-                                : "Belum ada lokasi dipilih",
-                            style: const TextStyle(fontSize: 14),
+                _buildFormCard([
+                  state.image != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.file(
+                            state.image!,
+                            height: 200,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
                           ),
+                        )
+                      : const Text("Belum ada gambar dipilih 🖼️"),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.image_search),
+                    label: const Text("Pilih Gambar"),
+                    onPressed: () async {
+                      final picker = ImagePicker();
+                      final picked = await picker.pickImage(source: ImageSource.gallery);
+                      if (picked != null) {
+                        productBloc.add(ProductImagePicked(File(picked.path)));
+                      }
+                    },
+                  ),
+                ]),
+                const SizedBox(height: 16),
+                _buildFormCard([
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on, color: Colors.red),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          state.lat != null && state.lng != null
+                              ? "Lokasi: (${state.lat!.toStringAsFixed(4)}, ${state.lng!.toStringAsFixed(4)})"
+                              : "Belum ada lokasi dipilih",
+                          style: const TextStyle(fontSize: 14),
                         ),
-                        OutlinedButton(
-                          onPressed: () async {
-                            final picked = await Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const MapPickerPage()),
-                            );
-                            if (picked != null) {
-                              final pos = picked as LatLng;
-                              productBloc.add(ProductLocationPicked(pos.latitude, pos.longitude));
-                            }
-                          },
-                          child: const Text("Pilih Lokasi"),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-
+                      ),
+                      OutlinedButton(
+                        onPressed: () async {
+                          final picked = await Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const MapPickerPage()),
+                          );
+                          if (picked != null) {
+                            final pos = picked as LatLng;
+                            productBloc.add(ProductLocationPicked(pos.latitude, pos.longitude));
+                          }
+                        },
+                        child: const Text("Pilih Lokasi"),
+                      ),
+                    ],
+                  )
+                ]),
                 const SizedBox(height: 24),
 
-                // Tombol Submit
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: state.isSubmitting ? null : () => productBloc.add(ProductSubmitted()),
-                    icon: state.isSubmitting
-                        ? const SizedBox(
-                            height: 16,
-                            width: 16,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                // ✅ Rounded Upload Button with Icon
+                Align(
+                  alignment: Alignment.center,
+                  child: InkWell(
+                    onTap: state.isSubmitting
+                        ? null
+                        : () {
+                            if (state.image == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Gambar harus dipilih dulu 📸")),
+                              );
+                              return;
+                            }
+                            productBloc.add(ProductSubmitted());
+                          },
+                    borderRadius: BorderRadius.circular(100),
+                    child: Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: state.isSubmitting ? Colors.grey : Colors.black,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
                           )
-                        : const Icon(Icons.upload),
-                    label: const Text("Upload Produk"),
+                        ],
+                      ),
+                      child: state.isSubmitting
+                          ? const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.add,
+                              color: Colors.white,
+                              size: 32,
+                            ),
+                    ),
                   ),
                 ),
               ],
@@ -169,47 +170,50 @@ class UploadProductPage extends StatelessWidget {
           );
         },
       ),
+    );
+  }
 
-      // Bottom Nav Bar
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1,
-        backgroundColor: Colors.white,
-        selectedItemColor: Colors.black,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Beranda'),
-          BottomNavigationBarItem(icon: Icon(Icons.add_box), label: 'Upload'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
-        ],
-        onTap: (index) {
-          if (index == 0) Navigator.pushNamed(context, '/user-dashboard');
-          if (index == 2) Navigator.pushNamed(context, '/profile');
-        },
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller,
+    IconData icon,
+    Function(String) onChanged, {
+    int maxLines = 1,
+    TextInputType inputType = TextInputType.text,
+  }) {
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      keyboardType: inputType,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon),
+        filled: true,
+        fillColor: Colors.grey[100],
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
 
-  InputDecoration _inputDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      filled: true,
-      fillColor: Colors.grey[100],
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-    );
-  }
-
-  Widget _buildFormCard({required List<Widget> children}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4)),
-        ],
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
-    );
-  }
+  Widget _buildFormCard(List<Widget> children) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            )
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: children,
+        ),
+      );
 }

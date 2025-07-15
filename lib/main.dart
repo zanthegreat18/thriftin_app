@@ -31,7 +31,7 @@ class MyApp extends StatelessWidget {
       providers: [
         BlocProvider(create: (_) => AuthBloc(authService)),
         BlocProvider(create: (_) => ProductBloc(productService)),
-        // NOTE: BuyBloc tetap inject per page (lihat route '/product-detail')
+        // NOTE: BuyBloc inject per page 
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -56,13 +56,13 @@ class MyApp extends StatelessWidget {
           '/user-dashboard': (_) => const UserDashboardPage(),
           '/all-products': (_) => const AllProductsPage(),
 
-          // ✅ Inject BuyBloc ke halaman detail
+          //  Tambahkan route untuk BuyBloc ke halaman detail
           '/product-detail': (_) => BlocProvider(
                 create: (_) => BuyBloc(BuyService()),
                 child: const ProductDetailPage(),
               ),
 
-          // ✅ Tambahin CartPage route juga
+          // Tambahin CartPage route 
           '/cart': (_) => CartPage(),
         },
       ),
